@@ -8,6 +8,7 @@ Ollama + pgvector を使って回答する QA ボットです。
 - ベクトル DB: PostgreSQL + pgvector
 - インターフェース: Slack Bot（Socket Mode）
 
+AIエージェントの導入もスムーズにするため、各種mdも追加しています。
 
 ## 環境構築
 
@@ -240,3 +241,4 @@ data/
   ```bash
   docker compose exec pgvector-db psql -U llm -d llmdb -c "SELECT COUNT(*) FROM documents;"
   ```
+
