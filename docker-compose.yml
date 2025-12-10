@@ -1,0 +1,60 @@
+services:
+  pgvector-db:
+    image: ankane/pgvector:latest
+    container_name: pgvector-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: llm
+      POSTGRES_PASSWORD: llm_pass
+      POSTGRES_DB: llmdb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    volumes:
+      - ./data/ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+
+  app:
+    build: ./app
+    container_name: llm-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - LLM_MODEL=${LLM_MODEL}
+      - EMBED_MODEL=${EMBED_MODEL}
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - SLACK_APP_TOKEN=${SLACK_APP_TOKEN}
+    volumes:
+      - ./docs:/app/docs:ro
+    depends_on:
+      pgvector-db:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
